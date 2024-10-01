@@ -2,6 +2,7 @@
 import socketserver
 import threading
 import random 
+import time
 
 # The server based on threads for each connection
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -34,13 +35,6 @@ class PlayerHandler(socketserver.StreamRequestHandler):
     def initialize(self):
         Game.join(self)
         self.send('WELCOME ' + self.mark)
-        if self.mark == '1':
-            self.game.current_player = self
-            self.send('MESSAGE Waiting for opponent to connect')
-        else:
-            self.opponent = self.game.current_player
-            self.opponent.opponent = self
-            self.opponent.send('MESSAGE Your move')
 
     def process_commands(self):
         while True:
@@ -51,19 +45,27 @@ class PlayerHandler(socketserver.StreamRequestHandler):
             command = command.decode('utf-8')
             if command.startswith('QUIT'):
                 return
+            if self.mark != '1':
+                time.sleep(random.randint(100, 500))
+            else:
+                if self.timeout <= 0:
+                    self.send('help')
+                    self.timeout = 1000
             self.process_move_command(command)
 
     def process_move_command(self, command):
         try:
-            value = int(command)
-            res = self.game.choice(value, self)
-            if res == "WIN":
-                self.send('Your win!')
-                self.opponent.send('DEFEAT')
-
+            if self.mark != '1':
+                if command.startswith('help'):
+                    if random.randint(1, 10) <= 3:
+                        self.send("support")
             else:
-                self.send('No. It is %s'%res)
-                self.opponent.send("your turn:")
+                if command.startswith('support'):
+                    self.beenHelped += 1
+                    if self.beenHelped >= 2:
+                        self.beenHelped = 0
+                        self.send('Thanks for helping')
+                        self.game.rechoose()
 
                       
         except Exception as e:
@@ -73,6 +75,7 @@ class Game():
     size = 10
     next_game = None
     game_selection_lock = threading.Lock()
+    players = []
 
     def __init__(self):
         self.thevalue = random.randint(0,self.size)
@@ -81,9 +84,17 @@ class Game():
         self.lock = threading.Lock()
 
     
+    def rechoose(self):
+        for player in self.players:
+            player.mark = '0'
+        rand = random.randint(0, len(self.players))
+        self.players[rand].mark = '1'
+        self.players[rand].timeout = 1000
+        self.players[rand].beenHeped = 0
+
     def choice(self, value, player):
         with self.lock:
-            if player != self.current_player:
+            if player.master == ture:
                 raise ValueError('Not your turn')
             elif player.opponent is None:
                 raise ValueError('You don’t have an opponent yet')
@@ -105,10 +116,12 @@ class Game():
                 cls.next_game = Game()
                 player.game = cls.next_game
                 player.mark = '1'
+                player.beenHelped = 0
+                player.timeout = 1000
             else:
-                player.mark = '2'
+                player.mark = '0'
                 player.game = cls.next_game
-                cls.next_game = None
+            cls.players.append(player)
 
 server = ThreadedTCPServer(('', 9999), PlayerHandler)
 try:
@@ -130,3 +143,16 @@ server.server_close()
 # Slave: sleep(random), leer ayuda (si existe => ayudar( si o no ? = random 30% accuracy), caso contrario se vuelve a dormir)
 # Master: help (mirar como hacer exporation time), esperar si le responden 2 (en caso de si => reorganizar jerarquia, en caso contrario dormir i volver a preguntar)
 #
+#
+# Deduccions
+# Classe Player handler, maneja las peticiones de los threads que se conectan
+# Game maneja la logica del juego
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
