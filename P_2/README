@@ -1,0 +1,13 @@
+• Explain how you handle message exchange between the agents and the role of
+each agent (i.e., the services they expose) to facilitate negotiation.
+
+Els missatges s'intercanvien a través d'una API, cada un dels agents fa una peticio al link '/agent/<int:agent_id>/generar' 
+fent qeu es generi un numero i s'emagatzemi a la posició de corresponent d'un array. L'API retorna un missatge amb el nombre de numeros generats per l'agent i el nombre generat.
+
+Després per mirar si exixteix un consens es fa una cridada a '/consens' i la propia API retorna un missatge indicant si hi ha consens o no
+
+• Do you think this method of communication is suitable for establishing group
+communication?
+
+Sí, aquest mètode es correte per establir una comunicació grupal, ja que es fa de manera asincrona fent que no sigui necesari ni crític que
+tots els agents estiguin conectats, simplement es gestionen les peticionsque cada un d'ells fa. Per contrapartida hi ha un punt comú de falla, la API, que si deixa de donar servei no es pot donar la comunicació.
