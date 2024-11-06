@@ -17,10 +17,6 @@ def bucle():
             print(consens)
             time.sleep(2)
 
-        
-
-
-
 if __name__=="__main__":
     bucle()
 
