@@ -5,6 +5,7 @@ from nodeServer import NodeServer
 from nodeSend import NodeSend
 from message import Message
 import config
+import random
 class Node():
     def __init__(self,id):
         Thread.__init__(self)
@@ -31,23 +32,22 @@ class Node():
         timer.start()
         self.curr_time = datetime.now()
         #wakeup
-        #TODO shomething
-
-        
         self.wakeupcounter += 1
-        if self.wakeupcounter == 2:
-            timer.cancel()
-            print("Stopping N%i"%self.id)
-            self.daemon = False
-
-        else:
-            print("This is Node_%i at TS:%i sending a message to my collegues"%(self.id,self.lamport_ts))
-
-            message = Message(msg_type="greetings",
+        #TODO shomething
+        havetoentercs = random.randint(0, 10)
+        if havetoentercs == 0:
+            message = Message(msg_type="request",
                             src=self.id,
-                            data="Hola, this is Node_%i _ counter:%i"%(self.id,self.wakeupcounter))
+                            data="Node_%i|counter:%i"%(self.id,self.wakeupcounter))
 
+            print(f'Node{self.id} {message.msg_type} to {message.src}')
             self.client.multicast(message, self.collegues)
+        
+    def send(self, msg, dest, Multicast=False):
+        if not Multicast:
+            self.client.send_message(msg, dest)
+        else:
+            self.client.multicast(msg, self.collegues)
 
     def run(self):
         print("Run Node%i with the follows %s"%(self.id,self.collegues))
