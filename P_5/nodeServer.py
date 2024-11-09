@@ -59,10 +59,12 @@ class NodeServer(Thread):
 
                 message = Message(msg_type="grant",
                             src=self.node.id,
+                            dest=int(id_requesting),
                             data="Node_%i"%(self.node.id))
                 
                 print(f'Node{self.node.id} {message.msg_type} to {id_requesting}')
                 self.node.send(message, id_requesting, False)
+                print(f'Node{self.node.id}, sends {message.msg_type}')
                 self.granted = {"id": id_requesting, "ts": ts}
             else:
                 id_requesting = msg['data'].split('|')[0].split('_')[1]
@@ -70,6 +72,7 @@ class NodeServer(Thread):
                 if ts > self.granted["ts"]:
                     message = Message(msg_type="failed",
                             src=self.node.id,
+                            dest=int(id_requesting),
                             data="Node_%i"%(self.node.id))  
                     
                     print(f'Node{self.node.id} {message.msg_type} to {message.src}')
@@ -78,41 +81,50 @@ class NodeServer(Thread):
                 else:
                     message = Message(msg_type="inquire",
                             src=self.node.id,
+                            dest=int(id_requesting),
                             data="Node_%i"%(self.node.id))  
                     
                     self.node.client.send_message(message, self.granted["id"])        
         if msg['msg_type']=="inquire":
+            print(f'Node {self.node.id} revieved {msg}')
             id_reciving = msg['data'].split('_')[1]
             if self.failed or (self.yieldes and self.yieldes["dst"]!=id_reciving):
                 message = Message(msg_type="yield",
                             src=self.node.id,
+                            dest=int(id_reciving),
                             data="Node_%i"%(self.node.id))  
                     
             print(f'Node{self.node.id} {message.msg_type} to {message.src}')
             self.node.send(message, id_reciving, False)
         if msg['msg_type']=="yield":
+            print(f'Node {self.node.id} revieved {msg}')
             id_reciving = msg['data'].split('_')[1]
 
             message = Message(msg_type="grant",
                             src=self.node.id,
+                            dest=int(id_reciving),
                             data="Node_%i"%(self.node.id)) 
             print(f'Node{self.node.id} {message.msg_type} to {message.src}')
             self.node.send(message, self.requests[0]["id"])
             self.requests[0] = {"id": self.granted["id"]}
             self.requests.append({"id":id_reciving})
         if msg['msg_type']=="release":
+            print(f'Node {self.node.id} revieved {msg}')
             id_reciving = msg['data'].split('_')[1]
             self.requests.remove({"id": id_reciving})
 
             if self.requests != []:
                 message = Message(msg_type="grant",
                                 src=self.node.id,
+                                dest=int(id_reciving),
                                 data="Node_%i"%(self.node.id))  
                 print(f'Node{self.node.id} {message.msg_type} to {message.src}')
                 self.node.send(message, self.requests[0]["id"], False)
         if msg['msg_type']=="grant":
+            print(f'Node {self.node.id} revieved {msg}')
             id_recived = msg['data'].split('_')[1]
             if int(id_recived) not in self.grants:
+                print("Grant appended")
                 self.grants.append(int(id_recived))
             
             if sorted(self.grants)==sorted(self.node.collegues):
@@ -122,11 +134,13 @@ class NodeServer(Thread):
                 
                 message = Message(msg_type="release",
                                 src=self.node.id,
+                                dest=int(id_recived),
                                 data="Node_%i"%(self.node.id))  
                 print(f'Node{self.node.id} {message.msg_type} to {message.src}')
                 self.failed = False
                 self.node.send(message, self.node.collegues, False)
         if msg['msg_type']=="failed":
+            print(f'Node {self.node.id} revieved {msg}')
             self.failed = True
 
 
